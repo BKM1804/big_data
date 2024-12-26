@@ -1,4 +1,6 @@
-Setup :
+# Hướng Dẫn Setup Dự Án BigData_BTL
+
+```bash
 cd bigdata_btl
 mkdir -p ../storage/
 mkdir -p ../storage/esdata
