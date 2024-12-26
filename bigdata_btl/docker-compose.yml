@@ -81,7 +81,7 @@ services:
     container_name: resourcemanager
     restart: always
     environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode-1:9864"
     env_file:
       - ./hadoop/hadoop.env
     networks:
@@ -91,7 +91,7 @@ services:
     container_name: nodemanager
     restart: always
     environment:
-      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode-1:9864 resourcemanager:8088"
     env_file:
       - ./hadoop/hadoop.env
     networks:
