@@ -21,7 +21,7 @@ def crawl_url(url):
             # Gửi dữ liệu vào Kafka topic 'web-crawl'
             print("Da crawl du lieu! ")
             # print(data[:20])
-            producer.send('web-crawl', {'url': url, 'content': "1234hihi", 'timestamp': time.time()})
+            producer.send('web-crawl', {'url': url, 'content': data, 'timestamp': time.time()})
             print(f"Đã gửi dữ liệu từ {url} vào Kafka.")
         else:
             print(f"Lỗi khi truy cập {url}: {response.status_code}")
