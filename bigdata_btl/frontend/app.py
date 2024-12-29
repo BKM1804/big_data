@@ -14,7 +14,6 @@ def get_file_content(url_input):
     payload = {
         "url": url_input
     }
-    
     # Định nghĩa headers
     headers = {
         "Content-Type": "application/json"
@@ -145,7 +144,7 @@ def get_score(embedding1 , embedding2):
         print("Đã xảy ra lỗi không mong muốn:", e)
         return ScoreResponse(score=None)
 def get_llm_response(text: str) :
-    url = "http://localhost:8000/get_llm_response"
+    url = "http://localhost:8001/get_llm_response"
     # Định nghĩa payload (dữ liệu gửi đi)
     payload = {
         "text": text
@@ -161,22 +160,20 @@ def get_llm_response(text: str) :
         if response.status_code == 200:
             data = response.json()
             # Tạo đối tượng LLMResponse từ dữ liệu phản hồi
-            print(data)
-            return llm_response
+            return data['response']
         else:
             print(f"Yêu cầu thất bại với mã trạng thái: {response.status_code}")
             print("Nội dung phản hồi:", response.text)
-            return LLMResponse(response=None)
-    
+            return 0
     except requests.exceptions.RequestException as e:
         print("Đã xảy ra lỗi khi gửi yêu cầu:", e)
-        return LLMResponse(response=None)
+        return 0
     except json.JSONDecodeError:
         print("Lỗi khi giải mã JSON phản hồi.")
-        return LLMResponse(response=None)
+        return 0
     except Exception as e:
         print("Đã xảy ra lỗi không mong muốn:", e)
-        return LLMResponse(response=None)
+        return 0
 def main():
     st.title("Ứng Dụng Nhập URL và Câu Hỏi")
 
@@ -223,9 +220,7 @@ def main():
         if question:
             scores = []
             embedding_question = get_embedding(question)
-
             for out in outs:
-                print(out.embedding[:10])
                 scores.append(get_score(embedding_question , out.embedding))
             print(scores)
             sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i] , reverse = True)
@@ -240,6 +235,7 @@ def main():
         if question:
             context_query = top_docs + ";" + question
             # processed_question = question + " oke"
+            print(context_query)
             processed_question = get_llm_response(context_query)
             st.write(f"**Câu hỏi đã xử lý:** {processed_question}")
         else:
