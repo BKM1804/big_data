@@ -6,13 +6,14 @@ import json
 import logging
 import signal
 import sys
-
+import hashlib
+import requests
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("KafkaSparkElasticsearchIntegration")
 
 # Define the Elasticsearch index
-es_index = "web-crawl"
+es_index = "web-crawl_1"
 
 # Graceful shutdown handler
 def signal_handler(sig, frame):
@@ -23,6 +24,34 @@ def signal_handler(sig, frame):
     # Stop Spark session
     spark.stop()
     sys.exit(0)
+def get_embedding(text):
+    url = "http://127.0.0.1:8000/get_docs_embedding"
+
+    # Định nghĩa payload (dữ liệu gửi đi)
+    payload = {
+        "text": text
+    }
+    # Định nghĩa headers
+    headers = {
+        "Content-Type": "application/json"
+    }
+    try:
+        # Gửi yêu cầu POST
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+        # Kiểm tra mã trạng thái HTTP
+        if response.status_code == 200:
+            # Giả sử API trả về JSON chứa embedding
+            embedding = response.json().get("embedding")
+            return embedding
+        else:
+            print(f"Yêu cầu thất bại với mã trạng thái: {response.status_code}")
+            print("Nội dung phản hồi:", response.text)
+            return 0
+
+    except requests.exceptions.RequestException as e:
+        print("Đã xảy ra lỗi khi gửi yêu cầu:", e)
+
 
 # Register the signal handlers for graceful shutdown
 signal.signal(signal.SIGINT, signal_handler)
@@ -63,6 +92,8 @@ processed_df = json_df.withColumn("word_count",
     (length(col("content")) - length(regexp_replace(col("content"), "\\w+", ""))) / 1
 )
 
+
+
 # Write processed data to console for debugging
 console_query = processed_df.writeStream \
     .outputMode("append") \
@@ -78,20 +109,31 @@ def process_batch(batch_df, batch_id):
         file_name = f"web_crawl_data_batch_{batch_id}.parquet"
         hdfs_path = f"hdfs://localhost:9000/user/spark/web_crawl_data/{file_name}"
 
+        records = batch_df.toJSON().map(lambda j: json.loads(j)).collect()
+        logger.info(f"Batch {batch_id} has {len(records)} records.")
+
+        # Thêm trường 'embedding' vào mỗi bản ghi
+        for record in records:
+            content = record.get("content", "")
+            embedding = get_embedding(content)
+            record["embedding"] = embedding  # Thêm trường 'embedding'
+
+        # Chuyển đổi danh sách các bản ghi trở lại thành DataFrame Spark
+        # Sử dụng parallelize để tạo RDD từ danh sách các bản ghi
+        new_batch_rdd = spark.sparkContext.parallelize([json.dumps(r) for r in records])
+        new_batch_df = spark.read.json(new_batch_rdd)
+
         # Ghi DataFrame vào HDFS với tên file cụ thể
         # Sử dụng coalesce(1) để đảm bảo ghi thành một file duy nhất
-        batch_df.coalesce(1).write.mode("append").parquet(hdfs_path)
+        new_batch_df.coalesce(1).write.mode("append").parquet(hdfs_path)
         logger.info(f"Batch {batch_id} written to HDFS at {hdfs_path}.")
 
         # Thêm trường 'file_name' vào DataFrame
-        batch_df_with_file = batch_df.withColumn("file_name", lit(file_name))
+        batch_df_with_file = batch_df.withColumn("file_name", lit(file_name)).drop("content")
 
         # Khởi tạo client Elasticsearch với basic_auth
         es = Elasticsearch(
             hosts=["http://localhost:9200"],
-            basic_auth=("username", "password"),
-            scheme="http",
-            port=9200,
         )
 
         # Kiểm tra kết nối đến Elasticsearch
@@ -107,11 +149,11 @@ def process_batch(batch_df, batch_id):
         actions = [
             {
                 "_index": es_index,
-                "_source": record
+                "_source": record,
+                "_id": hashlib.sha256(record["url"].encode()).hexdigest()
             }
             for record in records
         ]
-
         # Ghi dữ liệu vào Elasticsearch
         if actions:
             helpers.bulk(es, actions)

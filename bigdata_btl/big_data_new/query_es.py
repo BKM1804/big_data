@@ -19,10 +19,8 @@ index_name = "web-crawl"
 # Định nghĩa truy vấn
 query = {
     "query": {
-        "range": {
-            "word_count": {
-                "lt": 100000000000000000  # Less than 100,000
-            }
+        "term": {
+            "_id": document_id
         }
     },
     "sort": [

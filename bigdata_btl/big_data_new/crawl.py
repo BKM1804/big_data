@@ -6,18 +6,27 @@ import requests
 from kafka import KafkaProducer
 import json
 import time
-
+import requests
 # Cấu hình Kafka Producer
 producer = KafkaProducer(
     bootstrap_servers=['localhost:9092'],
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
+server_url = "http://127.0.0.1:8000/crawl_data"
 
+# Định nghĩa headers
+headers = {
+    "Content-Type": "application/json"
+}
 def crawl_url(url):
     try:
-        response = requests.get(url)
+        # Định nghĩa payload (dữ liệu gửi đi)
+        payload = {
+            "text": url
+        }
+        response = requests.post(server_url, headers=headers, data=json.dumps(payload))
         if response.status_code == 200:
-            data = response.text
+            data = json.loads(response.text)['content']
             # Gửi dữ liệu vào Kafka topic 'web-crawl'
             print("Da crawl du lieu! ")
             # print(data[:20])

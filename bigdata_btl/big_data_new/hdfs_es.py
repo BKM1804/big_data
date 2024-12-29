@@ -22,34 +22,13 @@ spark = SparkSession.builder \
 spark.sparkContext.setLogLevel("INFO")
 
 # 4. Đọc Dữ Liệu Từ HDFS
-df = spark.read.parquet("hdfs://localhost:9000/user/spark/web_crawl_data/")
-
-# 5. Xử Lý Dữ Liệu (Tính toán word_count nếu chưa có)
-# (Nếu đã có word_count trong dữ liệu, bạn có thể bỏ qua bước này)
-# processed_df = df.withColumn("word_count", 
-#     (length(col("content")) - length(regexp_replace(col("content"), "\\w+", ""))) / 1
-# )
-
-# 6. Ghi Dữ Liệu Lên Elasticsearch
-def write_to_elasticsearch(partition):
-    es = Elasticsearch(["http://localhost:9200"])
-    actions = []
-    for row in partition:
-        doc = row.asDict()
-        action = {
-            "_index": es_index,
-            "_id": doc.get("url"),  # Sử dụng 'url' làm ID duy nhất
-            "_source": doc
-        }
-        actions.append(action)
-    if actions:
-        helpers.bulk(es, actions)
-        logger.info(f"Indexed {len(actions)} records to Elasticsearch.")
-
-# Sử dụng `foreachPartition` để ghi dữ liệu lên Elasticsearch
-df.foreachPartition(write_to_elasticsearch)
-
-logger.info("Đã ghi dữ liệu lên Elasticsearch thành công.")
-
-# Dừng SparkSession
-spark.stop()
+def read_data_from_hdfs():
+    df = spark.read.parquet("hdfs://localhost:9000/user/spark/web_crawl_data/")
+    file_path = "hdfs://localhost:9000/user/spark/web_crawl_data/web_crawl_data_batch_74.parquet"
+    df = spark.read.parquet(file_path)
+    import pdb
+    pdb.set_trace()
+    return df.take(1)[0]['content']
+if __name__ == "__main__":
+    x = read_data_from_hdfs()
+    print(x)

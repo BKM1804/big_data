@@ -1,0 +1,7 @@
+peft 
+FlagEmbedding 
+fastapi
+uvicorn
+torch
+transformers
+llama-index==0.11.23

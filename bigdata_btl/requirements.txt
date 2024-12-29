@@ -2,3 +2,6 @@ requests
 kafka-python
 pyspark
 elasticsearch
+fastapi
+uvicorn
+torch
