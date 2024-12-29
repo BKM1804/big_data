@@ -5,10 +5,10 @@ import os
 import uvicorn
 import json
 from crawl_data import crawl_content_from_url
-import torch
-# from FlagEmbedding import BGEM3FlagModel
-# from llm import llm_response
-# model = BGEM3FlagModel("BAAI/bge-m3", use_fp16=True)
+# import torch
+from FlagEmbedding import BGEM3FlagModel
+from llm import llm_response
+model = BGEM3FlagModel("BAAI/bge-m3", use_fp16=True)
 app = FastAPI()
 
 # Định nghĩa mô hình dữ liệu đầu vào
@@ -19,8 +19,8 @@ class TextInput(BaseModel):
 async def get_docs_embedding(input: TextInput):
     try:
         # Generate embedding for the input text using the model
-        # embedding = model.encode(input.text)['dense_vecs']
-        embedding = torch.tensor([1,2,3,4])
+        embedding = model.encode(input.text)['dense_vecs']
+        # embedding = torch.tensor([1,2,3,4])
         return {"embedding": embedding.tolist()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -52,20 +52,20 @@ async def get_score(input: TextInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# @app.post("/get_llm_response")
-# async def get_llm_response(input: TextInput):
-#     try:
-#         # Assuming input.text contains two parts separated by a delimiter, e.g., a semicolon
-#         parts = input.text.split(';')
-#         if len(parts) != 2:
-#             raise ValueError("Input text must contain exactly two parts separated by a semicolon.")
-#         docs, question = parts[0].strip(), parts[1].strip()
+@app.post("/get_llm_response")
+async def get_llm_response(input: TextInput):
+    try:
+        # Assuming input.text contains two parts separated by a delimiter, e.g., a semicolon
+        parts = input.text.split(';')
+        if len(parts) != 2:
+            raise ValueError("Input text must contain exactly two parts separated by a semicolon.")
+        docs, question = parts[0].strip(), parts[1].strip()
         
-#         prompt = f"With this source context: {docs} \nAnswer the question: {question}"
-#         print(prompt)
-#         return {"response": llm_response(prompt)}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+        prompt = f"With this source context: {docs} \nAnswer the question: {question}"
+        print(prompt)
+        return {"response": llm_response(prompt)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 if __name__ == "__main__":
     # Khởi chạy server FastAPI sử dụng Uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
