@@ -5,7 +5,8 @@ kafka-topics --create --topic web-crawl --bootstrap-server localhost:9092 --repl
 kafka-topics --list --bootstrap-server localhost:9092
 
 #chạy ở ngoài
-python3 crawl.py
+# python3 crawl.py
+pip install -r ../requirements.txt
 kafka-console-consumer --bootstrap-server localhost:9092 --topic web-crawl --from-beginning
 # spark-submit spark_consumer.py
 # spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.0.0 spark_consumer.py

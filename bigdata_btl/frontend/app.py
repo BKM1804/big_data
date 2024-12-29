@@ -144,6 +144,39 @@ def get_score(embedding1 , embedding2):
     except Exception as e:
         print("Đã xảy ra lỗi không mong muốn:", e)
         return ScoreResponse(score=None)
+def get_llm_response(text: str) :
+    url = "http://localhost:8000/get_llm_response"
+    # Định nghĩa payload (dữ liệu gửi đi)
+    payload = {
+        "text": text
+    }
+    # Định nghĩa headers
+    headers = {
+        "Content-Type": "application/json"
+    }
+    try:
+        # Gửi yêu cầu POST
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        # Kiểm tra mã trạng thái HTTP
+        if response.status_code == 200:
+            data = response.json()
+            # Tạo đối tượng LLMResponse từ dữ liệu phản hồi
+            print(data)
+            return llm_response
+        else:
+            print(f"Yêu cầu thất bại với mã trạng thái: {response.status_code}")
+            print("Nội dung phản hồi:", response.text)
+            return LLMResponse(response=None)
+    
+    except requests.exceptions.RequestException as e:
+        print("Đã xảy ra lỗi khi gửi yêu cầu:", e)
+        return LLMResponse(response=None)
+    except json.JSONDecodeError:
+        print("Lỗi khi giải mã JSON phản hồi.")
+        return LLMResponse(response=None)
+    except Exception as e:
+        print("Đã xảy ra lỗi không mong muốn:", e)
+        return LLMResponse(response=None)
 def main():
     st.title("Ứng Dụng Nhập URL và Câu Hỏi")
 
@@ -180,7 +213,6 @@ def main():
                 time.sleep(10)
                 file_hdfs.append(get_file_content(url))
             else:
-                print(url)
                 file_hdfs.append(file)
         outs = []
         for file in file_hdfs:
@@ -191,15 +223,13 @@ def main():
         if question:
             scores = []
             embedding_question = get_embedding(question)
-            print(embedding_question)
+
             for out in outs:
+                print(out.embedding[:10])
                 scores.append(get_score(embedding_question , out.embedding))
             print(scores)
-            scores = [1,2,3,1,0]
             sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i] , reverse = True)
-            print(sorted_indices)
             top_docs = outs[sorted_indices[0]].content
-        print(top_docs)
 
         st.markdown("### Kết Quả")
 
@@ -208,7 +238,9 @@ def main():
 
         # Hiển thị câu hỏi thêm chữ "oke"
         if question:
-            processed_question = question + " oke"
+            context_query = top_docs + ";" + question
+            # processed_question = question + " oke"
+            processed_question = get_llm_response(context_query)
             st.write(f"**Câu hỏi đã xử lý:** {processed_question}")
         else:
             st.warning("Vui lòng nhập vào câu hỏi.")
