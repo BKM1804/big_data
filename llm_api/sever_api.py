@@ -49,57 +49,7 @@ class ElasticsearchResponse(BaseModel):
 class APIResponse(BaseModel):
     data: Union[List[ElasticsearchResponse], int]
 
-@app.post("/get_file_from_hdfs")
-def get_file_from_hdfs(request: UrlRequest):
-    url = request.url
-    index_name = "web-crawl_1"  # Thay đổi nếu cần
-    # Định nghĩa truy vấn Elasticsearch để tìm các tài liệu có 'url' trùng khớp
-    query = {
-        "query": {
-            "term": {
-                "_id": hashlib.sha256(url.encode()).hexdigest()  # Sử dụng 'url.keyword' nếu 'url' được định nghĩa là 'keyword' trong mapping
-            }
-        },
-        "sort": [
-            {"word_count": {"order": "asc"}}  # Sắp xếp tăng dần theo 'word_count'
-        ],
-        "size": 10  # Số lượng kết quả trả về (có thể điều chỉnh)
-    }
-    try:
-        # Thực hiện truy vấn
-        response = es.search(index=index_name, body=query)
 
-        hits = response.get('hits', {}).get('hits', [])
-
-        if not hits:
-            return APIResponse(data=0)  # Trả về 0 nếu không tìm thấy tài liệu
-
-        # Xử lý kết quả và tạo danh sách các tài liệu
-        results = []
-        for hit in hits:
-            source = hit.get('_source', {})
-            result = ElasticsearchResponse(
-                id=hit.get('_id'),
-                url=source.get('url', ''),
-                content=source.get('content'),
-                timestamp=source.get('timestamp'),
-                word_count=source.get('word_count'),
-                file_name=source.get('file_name')  # Nếu có trường 'file_name'
-                # Thêm các trường khác nếu cần
-            )
-            results.append(result)
-
-        return APIResponse(data=results)
-
-    except exceptions.NotFoundError:
-        logger.error(f"Chỉ số '{index_name}' không tồn tại trong Elasticsearch.")
-        raise HTTPException(status_code=404, detail="Chỉ số không tồn tại")
-    except exceptions.ElasticsearchException as e:
-        logger.error(f"Lỗi Elasticsearch: {e}")
-        raise HTTPException(status_code=500, detail="Lỗi Elasticsearch")
-    except Exception as e:
-        logger.error(f"Lỗi không mong muốn: {e}")
-        raise HTTPException(status_code=500, detail="Lỗi không mong muốn")
 
 class FileRequest(BaseModel):
     file_name: str
@@ -157,7 +107,57 @@ def get_content_from_hdfs(request: FileRequest):
     except Exception as e:
         logger.error(f"Lỗi khi đọc file {file_name}: {e}")
         raise HTTPException(status_code=500, detail="Lỗi khi đọc file từ HDFS")
+@app.post("/get_file_from_hdfs")
+def get_file_from_hdfs(request: UrlRequest):
+    url = request.url
+    index_name = "web-crawl_1"  # Thay đổi nếu cần
+    # Định nghĩa truy vấn Elasticsearch để tìm các tài liệu có 'url' trùng khớp
+    query = {
+        "query": {
+            "term": {
+                "_id": hashlib.sha256(url.encode()).hexdigest()  # Sử dụng 'url.keyword' nếu 'url' được định nghĩa là 'keyword' trong mapping
+            }
+        },
+        "sort": [
+            {"word_count": {"order": "asc"}}  # Sắp xếp tăng dần theo 'word_count'
+        ],
+        "size": 10  # Số lượng kết quả trả về (có thể điều chỉnh)
+    }
+    try:
+        # Thực hiện truy vấn
+        response = es.search(index=index_name, body=query)
 
+        hits = response.get('hits', {}).get('hits', [])
+
+        if not hits:
+            return APIResponse(data=0)  # Trả về 0 nếu không tìm thấy tài liệu
+
+        # Xử lý kết quả và tạo danh sách các tài liệu
+        results = []
+        for hit in hits:
+            source = hit.get('_source', {})
+            result = ElasticsearchResponse(
+                id=hit.get('_id'),
+                url=source.get('url', ''),
+                content=source.get('content'),
+                timestamp=source.get('timestamp'),
+                word_count=source.get('word_count'),
+                file_name=source.get('file_name')  # Nếu có trường 'file_name'
+                # Thêm các trường khác nếu cần
+            )
+            results.append(result)
+
+        return APIResponse(data=results)
+
+    except exceptions.NotFoundError:
+        logger.error(f"Chỉ số '{index_name}' không tồn tại trong Elasticsearch.")
+        raise HTTPException(status_code=404, detail="Chỉ số không tồn tại")
+    except exceptions.ElasticsearchException as e:
+        logger.error(f"Lỗi Elasticsearch: {e}")
+        raise HTTPException(status_code=500, detail="Lỗi Elasticsearch")
+    except Exception as e:
+        logger.error(f"Lỗi không mong muốn: {e}")
+        raise HTTPException(status_code=500, detail="Lỗi không mong muốn")
 if __name__ == "__main__":
     # Khởi chạy server FastAPI sử dụng Uvicorn
     uvicorn.run(app, host="0.0.0.0", port=7728)
