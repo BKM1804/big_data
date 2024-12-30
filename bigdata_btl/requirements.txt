@@ -6,3 +6,5 @@ fastapi
 uvicorn
 torch
 streamlit
+lxml[html_clean]
+newspaper3k

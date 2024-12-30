@@ -7,6 +7,7 @@ from kafka import KafkaProducer
 import json
 import time
 import requests
+from newspaper import Article
 # Cấu hình Kafka Producer
 producer = KafkaProducer(
     bootstrap_servers=['localhost:9092'],
@@ -20,20 +21,28 @@ headers = {
 }
 def crawl_url(url):
     try:
-        # Định nghĩa payload (dữ liệu gửi đi)
-        payload = {
-            "text": url
-        }
-        response = requests.post(server_url, headers=headers, data=json.dumps(payload))
-        if response.status_code == 200:
+        if "https://vnexpress.net/" in url:
+        article = Article(url)
+        article.download()
+        article.parse()
+        data = article.text
+        title = article.title
+        keywords = article.meta_keywords
+        if data = "":
+            # Định nghĩa payload (dữ liệu gửi đi)
+            payload = {
+                "text": url
+            }
+            response = requests.post(server_url, headers=headers, data=json.dumps(payload))
             data = json.loads(response.text)['content']
-            # Gửi dữ liệu vào Kafka topic 'web-crawl'
-            print("Da crawl du lieu! ")
-            # print(data[:20])
-            producer.send('web-crawl', {'url': url, 'content': data, 'timestamp': time.time()})
-            print(f"Đã gửi dữ liệu từ {url} vào Kafka.")
-        else:
-            print(f"Lỗi khi truy cập {url}: {response.status_code}")
+        if data == "":
+            print(f"Không thể crawl dữ liệu từ {url}")
+            return
+        # Gửi dữ liệu vào Kafka topic 'web-crawl'
+        print("Da crawl du lieu! ")
+        # print(data[:20])
+        producer.send('web-crawl', {'url': url, 'content': data, 'timestamp': time.time(), 'title': title, 'keywords': keywords})
+        print(f"Đã gửi dữ liệu từ {url} vào Kafka.")
     except Exception as e:
         print(f"Exception khi crawl {url}: {e}")
 
