@@ -73,7 +73,7 @@ schema = StructType([
     StructField("content", StringType(), True),
     StructField("timestamp", FloatType(), True),
     StructField("title", StringType(), True),
-    StructField("keywords", StringType(), True),
+    StructField("keywords", ArrayType(StringType()), True)
 ])
 
 # Read data from Kafka
