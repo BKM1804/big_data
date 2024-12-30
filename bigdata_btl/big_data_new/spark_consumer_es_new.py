@@ -71,9 +71,9 @@ spark.sparkContext.setLogLevel("INFO")
 schema = StructType([
     StructField("url", StringType(), True),
     StructField("content", StringType(), True),
-    StructField("timestamp", FloatType(), True)
+    StructField("timestamp", FloatType(), True),
     StructField("title", StringType(), True),
-    StructField("keywords", StringType(), True)
+    StructField("keywords", StringType(), True),
 ])
 
 # Read data from Kafka
