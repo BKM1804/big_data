@@ -27,7 +27,7 @@ def crawl_url(url):
         data = article.text
         title = article.title
         keywords = article.meta_keywords
-        if data = "":
+        if data == "":
             # Định nghĩa payload (dữ liệu gửi đi)
             payload = {
                 "text": url
