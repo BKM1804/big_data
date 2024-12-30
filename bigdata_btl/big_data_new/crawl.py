@@ -21,7 +21,6 @@ headers = {
 }
 def crawl_url(url):
     try:
-        if "https://vnexpress.net/" in url:
         article = Article(url)
         article.download()
         article.parse()
